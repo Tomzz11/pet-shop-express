@@ -1,0 +1,52 @@
+## Health Check
+GET http://localhost:5000/api/health
+
+### ดูสินค้าทั้งหมด
+GET http://localhost:5000/api/products
+
+### ดูสินค้าแนะนำ
+GET http://localhost:5000/api/products/featured
+
+### สมัครสมาชิก
+POST http://localhost:5000/api/auth/register
+Content-Type: application/json
+
+{
+  "name": "Test User",
+  "email": "test@test.com",
+  "password": "123456"
+}
+
+### เข้าสู่ระบบ
+POST http://localhost:5000/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "user@petshop.com",
+  "password": "user123"
+}
+
+### ดูข้อมูลตัวเอง (ต้องใส่ token)
+GET http://localhost:5000/api/auth/me
+Authorization: Bearer eyJhbGciOiJIUzI1NiIs...
+
+### สร้างสินค้าใหม่ (Admin)
+POST http://localhost:5000/api/products
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIs...
+
+{
+  "name": "อาหารแมว",
+  "description": "อาหารแมวแบบเม็ด",
+  "price": 350,
+  "category": "cat",
+  "stock": 100,
+  "image": "/images/products/cat-food.jpg"
+}
+
+
+
+
+
+
+
