@@ -13,8 +13,13 @@ Content-Type: application/json
 
 {
   "name": "Test User",
-  "email": "test@test.com",
-  "password": "123456"
+  "lastName": "User",
+  "email": "realtest@test.com",
+  "password": "123456",
+  "phone": "0812315678",
+  "birthday": "1990-01-01",
+  "avatarUrl": "/images/avatars/default-avatar.png"
+  
 }
 
 ### เข้าสู่ระบบ

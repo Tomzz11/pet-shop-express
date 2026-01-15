@@ -2,9 +2,15 @@ import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 
 const userSchema = new mongoose.Schema(
-  {
+  { 
     name: {
       type: String,
+      required: [true, 'กรุณากรอกชื่อ'],
+      trim: true,
+      maxlength: [50, 'ชื่อต้องไม่เกิน 50 ตัวอักษร']
+    },
+     lastName: {
+      type : String,
       required: [true, 'กรุณากรอกชื่อ'],
       trim: true,
       maxlength: [50, 'ชื่อต้องไม่เกิน 50 ตัวอักษร']
@@ -30,7 +36,20 @@ const userSchema = new mongoose.Schema(
       type: String,
       enum: ['user', 'admin'],
       default: 'user'
-    }
+    },
+    phone: {
+      type: String,
+      maxlength: [10, "เบอร์โทรศัพท์ต้องไม่เกิน 10 ตัวอักษร"],
+      minlength : [10, "เบอร์โทรศัพท์ต้องมีอย่างน้อย 10 ตัวอักษร"],
+      required: [true, "กรุณากรอกเบอร์โทรศัพท์"],
+      trim : true,
+    },
+    birthday: {
+      type: Date,
+    },
+    avatarUrl: {
+      type: String,
+    },
   },
   {
     timestamps: true // สร้าง createdAt และ updatedAt อัตโนมัติ
