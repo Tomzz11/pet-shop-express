@@ -13,10 +13,10 @@ const generateToken = (id) => {
 // @access  Public
 export const register = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, lastName, email, password, phone, birthday, avatarUrl  } = req.body;
 
     // ตรวจสอบว่ากรอกข้อมูลครบหรือไม่
-    if (!name || !email || !password) {
+    if (!name || !email || !password || !phone || !lastName) {
       return res.status(400).json({
         success: false,
         message: 'กรุณากรอกข้อมูลให้ครบถ้วน'
@@ -32,11 +32,24 @@ export const register = async (req, res) => {
       });
     }
 
+    const phoneExists = await User.findOne({ phone });
+    if (phoneExists) {
+      return res.status(400).json({
+        success: false,
+        message: 'เบอร์โทรนี้ถูกใช้งานแล้ว'
+      });
+    }
+
     // สร้าง user ใหม่
     const user = await User.create({
       name,
+      lastName,
       email,
-      password
+      password,
+      phone,
+      birthday,
+      avatarUrl,
+
     });
 
     // สร้าง token
@@ -48,8 +61,12 @@ export const register = async (req, res) => {
       data: {
         _id: user._id,
         name: user.name,
+        lastName: user.lastName,
         email: user.email,
         role: user.role,
+        phone: user.phone,
+        birthday: user.birthday,
+        avatarUrl: user.avatarUrl,
         token
       }
     });

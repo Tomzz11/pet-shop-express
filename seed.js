@@ -137,17 +137,25 @@ const products = [
 // Admin User Data
 const adminUser = {
   name: 'Admin',
+  lastName: 'User',
   email: 'admin@petshop.com',
   password: 'admin123',
-  role: 'admin'
+  role: 'admin',
+  phone: '0812345678',
+  birthday: '1990-01-01',
+  avatarUrl: 'no pic',
 };
 
 // Test User Data
 const testUser = {
   name: 'Test User',
+  lastName: 'User',
   email: 'user@petshop.com',
   password: 'user123',
-  role: 'user'
+  role: 'user',
+  phone: '0812345678',
+  birthday: '2020-01-01',
+  avatarUrl: 'no pic',
 };
 
 const seedDatabase = async () => {
