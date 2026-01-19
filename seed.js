@@ -138,8 +138,8 @@ const products = [
 const adminUser = {
   name: 'Admin',
   lastName: 'User',
-  email: 'admin@petshop.com',
-  password: 'admin123',
+  email: 'admin@maipaws.com',
+  password: '123456',
   role: 'admin',
   phone: '0812345678',
   birthday: '1990-01-01',

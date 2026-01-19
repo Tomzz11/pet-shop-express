@@ -1,16 +1,18 @@
 import express from 'express';
 import {
   getCartByUserId,
-  createCart
+  createCart,
+  updateCart,
+  clearCart
 } from '../controllers/cartController.js';
-import { protect, admin } from '../middleware/authMiddleware.js';
-
+import { protect } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
-// Public routes
+// Cart routes
 router.get('/', protect, getCartByUserId);
 router.post('/', protect, createCart);
-
+router.put('/', protect, updateCart);
+router.delete('/', protect, clearCart);
 
 export default router;
