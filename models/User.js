@@ -98,8 +98,8 @@ const userSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// ✅ ทำให้มี default address ได้แค่ 1 อัน
-userSchema.pre("save", function (next) {
+// ✅ ทำให้มี default address ได้แค่ 1 อัน (ไม่ใช้ next)
+userSchema.pre("save", function () {
   if (this.isModified("addresses") && Array.isArray(this.addresses)) {
     const defaultCount = this.addresses.filter((a) => a.isDefault).length;
 
@@ -120,23 +120,17 @@ userSchema.pre("save", function (next) {
       this.addresses[0].isDefault = true;
     }
   }
-  next();
 });
 
-// ✅ Hash password ก่อน save
-userSchema.pre("save", async function (next) {
-  try {
-    if (!this.isModified("password")) return next();
+// ✅ Hash password ก่อน save (ไม่ใช้ next)
+userSchema.pre("save", async function () {
+  if (!this.isModified("password")) return;
 
-    const salt = await bcrypt.genSalt(10);
-    this.password = await bcrypt.hash(this.password, salt);
-    return next();
-  } catch (err) {
-    return next(err);
-  }
+  const salt = await bcrypt.genSalt(10);
+  this.password = await bcrypt.hash(this.password, salt);
 });
 
-// Method เปรียบเทียบ password
+// ✅ Method เปรียบเทียบ password
 userSchema.methods.matchPassword = async function (enteredPassword) {
   return bcrypt.compare(enteredPassword, this.password);
 };
