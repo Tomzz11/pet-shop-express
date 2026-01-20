@@ -5,7 +5,7 @@ import Product from '../models/Product.js';
 // @access  Public
 export const getProducts = async (req, res) => {
   try {
-    const { category, search, page = 1, limit = 12 } = req.query;
+    const { category, search, page = 1, limit = 100 } = req.query;
 
     // สร้าง query object
     let query = {};
