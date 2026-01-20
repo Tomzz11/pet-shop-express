@@ -28,7 +28,7 @@ app.use(cors({
         'http://localhost:5173',
         'http://localhost:5174',
         'http://localhost:5175',
-        'https://jsd-project-group-2.vercel.app/'],
+        'https://jsd-project-group-2.vercel.app'],
         credentials: true
 }));
 app.use(express.json());
