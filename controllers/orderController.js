@@ -192,3 +192,35 @@ export const getAllOrders = async (req, res) => {
     });
   }
 };
+
+
+
+export const deleteOrder = async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id).populate(
+      'userId',
+      'name email'
+    );
+
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: 'ไม่พบออเดอร์'
+      });
+    }
+
+    await order.findByIdAndDelete(req.params.id);
+
+    res.json({
+      success: true,
+      message: 'ลบออเดอร์สำเร็จ'
+    });
+  } catch (error) {
+    console.error('Delete Product Error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'เกิดข้อผิดพลาดในการลบสินค้า'
+    });
+  }
+};
