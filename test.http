@@ -52,7 +52,8 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIs...
 POST http://localhost:5000/api/product
 
 
-
+### heathcheck
+GET https://pet-shop-express-ujhc.onrender.com/api/health
 
 
 
