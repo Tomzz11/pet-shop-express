@@ -1,49 +1,48 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
 const cartItemSchema = new mongoose.Schema(
   {
     product: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'Product',
+      ref: "Product",
       required: true,
     },
     quantity: {
       type: Number,
       required: true,
       min: 1,
-      default: 1
+      default: 1,
     },
   },
   {
-    timestamps: true
+    timestamps: true,
   }
 );
+
 const cartSchema = new mongoose.Schema(
   {
     userId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-      required: true
+      ref: "User",
+      required: true,
+      unique: true,  // นี่จะสร้าง index อัตโนมัติแล้ว
     },
     items: {
       type: [cartItemSchema],
-      required: true,
-      validate: {
-        validator: function (v) {
-          return v.length > 0;
-        },
-        message: 'ต้องมีสินค้าอย่างน้อย 1 รายการ'
-      }
-    }
+      default: [],
+    },
   },
   {
-    timestamps: true
+    timestamps: true,
   }
 );
 
-// Index สำหรับ search
-cartSchema.index({ name: 'text', description: 'text' });
+// ❌ ลบบรรทัดนี้ออก เพราะ unique: true สร้าง index ให้แล้ว
+// cartSchema.index({ userId: 1 });
 
-const Cart = mongoose.model('Cart', cartSchema);
+const Cart = mongoose.model("Cart", cartSchema);
 
 export default Cart;
+
+
+

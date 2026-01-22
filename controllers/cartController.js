@@ -1,29 +1,29 @@
-import Cart from '../models/Cart.js';
-import Product from '../models/Product.js';
+import Cart from "../models/Cart.js";
+import Product from "../models/Product.js";
 
 // @desc    Get cart by user ID
 // @route   GET /api/cart
 // @access  Private
 export const getCartByUserId = async (req, res) => {
   try {
-    const cart = await Cart.findOne({ userId: req.user._id }).populate('items.product');
+    const cart = await Cart.findOne({ userId: req.user._id }).populate("items.product");
 
     if (!cart) {
-      return res.status(404).json({
-        success: false,
-        message: 'ไม่พบตะกร้าสินค้า'
+      return res.json({
+        success: true,
+        data: { items: [] },
       });
     }
 
     res.json({
       success: true,
-      data: cart
+      data: cart,
     });
   } catch (error) {
-    console.error('Get Cart By ID Error:', error);
+    console.error("Get Cart By ID Error:", error);
     res.status(500).json({
       success: false,
-      message: 'เกิดข้อผิดพลาดในการดึงข้อมูลสินค้าในตะกร้า'
+      message: "เกิดข้อผิดพลาดในการดึงข้อมูลสินค้าในตะกร้า",
     });
   }
 };
@@ -34,61 +34,70 @@ export const getCartByUserId = async (req, res) => {
 export const createCart = async (req, res) => {
   try {
     const { items } = req.body;
-    const cartItems = [];
 
-    // ตรวจสอบว่ามี cart อยู่แล้วหรือไม่
     const existingCart = await Cart.findOne({ userId: req.user._id });
-    
+
     if (existingCart) {
       return res.status(400).json({
         success: false,
-        message: 'มีตะกร้าสินค้าอยู่แล้ว กรุณาใช้ PUT /api/cart แทน'
+        message: "มีตะกร้าสินค้าอยู่แล้ว กรุณาใช้ PUT /api/cart แทน",
       });
     }
 
+    if (!items || items.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "กรุณาเพิ่มสินค้าอย่างน้อย 1 รายการ",
+      });
+    }
+
+    // Fetch all products at once
+    const productIds = items.map((item) => item.product);
+    const products = await Product.find({ _id: { $in: productIds } });
+    const productMap = new Map(products.map((p) => [p._id.toString(), p]));
+
+    const cartItems = [];
+
     for (const item of items) {
-      const product = await Product.findById(item.product);
+      const product = productMap.get(item.product.toString());
 
       if (!product) {
         return res.status(404).json({
           success: false,
-          message: `ไม่พบสินค้า ID: ${item.product}`
+          message: `ไม่พบสินค้า ID: ${item.product}`,
         });
       }
 
-      // ตรวจสอบ stock
       if (product.stock < item.quantity) {
         return res.status(400).json({
           success: false,
-          message: `สินค้า ${product.name} มีไม่เพียงพอ (เหลือ ${product.stock} ชิ้น)`
+          message: `สินค้า ${product.name} มีไม่เพียงพอ (เหลือ ${product.stock} ชิ้น)`,
         });
       }
-      
+
       cartItems.push({
         product: product._id,
         quantity: item.quantity,
       });
     }
 
-    // สร้าง cart
     const cart = await Cart.create({
       userId: req.user._id,
       items: cartItems,
     });
 
-    // Populate ข้อมูลสินค้า
-    await cart.populate('items.product');
+    await cart.populate("items.product");
 
     res.status(201).json({
       success: true,
-      message: 'สร้างตะกร้าสินค้าสำเร็จ',
-      data: cart
+      message: "สร้างตะกร้าสินค้าสำเร็จ",
+      data: cart,
     });
   } catch (error) {
-    console.error('Create Cart Error:', error);
+    console.error("Create Cart Error:", error);
     res.status(500).json({
       success: false,
-      message: error.message || 'เกิดข้อผิดพลาดในการสร้างตะกร้าสินค้า'
+      message: error.message || "เกิดข้อผิดพลาดในการสร้างตะกร้าสินค้า",
     });
   }
 };
@@ -99,49 +108,63 @@ export const createCart = async (req, res) => {
 export const updateCart = async (req, res) => {
   try {
     const { items } = req.body;
+
+    // If items is empty, delete the cart
+    if (!items || items.length === 0) {
+      await Cart.findOneAndDelete({ userId: req.user._id });
+      return res.json({
+        success: true,
+        message: "ล้างตะกร้าสินค้าสำเร็จ",
+        data: { items: [] },
+      });
+    }
+
+    // Fetch all products at once
+    const productIds = items.map((item) => item.product);
+    const products = await Product.find({ _id: { $in: productIds } });
+    const productMap = new Map(products.map((p) => [p._id.toString(), p]));
+
     const cartItems = [];
 
     for (const item of items) {
-      const product = await Product.findById(item.product);
+      const product = productMap.get(item.product.toString());
 
       if (!product) {
         return res.status(404).json({
           success: false,
-          message: `ไม่พบสินค้า ID: ${item.product}`
+          message: `ไม่พบสินค้า ID: ${item.product}`,
         });
       }
 
-      // ตรวจสอบ stock
       if (product.stock < item.quantity) {
         return res.status(400).json({
           success: false,
-          message: `สินค้า ${product.name} มีไม่เพียงพอ (เหลือ ${product.stock} ชิ้น)`
+          message: `สินค้า ${product.name} มีไม่เพียงพอ (เหลือ ${product.stock} ชิ้น)`,
         });
       }
-      
+
       cartItems.push({
         product: product._id,
         quantity: item.quantity,
       });
     }
 
-    // อัปเดตหรือสร้างใหม่ถ้าไม่มี
     const cart = await Cart.findOneAndUpdate(
       { userId: req.user._id },
       { items: cartItems },
-      { new: true, upsert: true }
-    ).populate('items.product');
+      { new: true, upsert: true, runValidators: true }
+    ).populate("items.product");
 
     res.json({
       success: true,
-      message: 'อัปเดตตะกร้าสินค้าสำเร็จ',
-      data: cart
+      message: "อัปเดตตะกร้าสินค้าสำเร็จ",
+      data: cart,
     });
   } catch (error) {
-    console.error('Update Cart Error:', error);
+    console.error("Update Cart Error:", error);
     res.status(500).json({
       success: false,
-      message: error.message || 'เกิดข้อผิดพลาดในการอัปเดตตะกร้าสินค้า'
+      message: error.message || "เกิดข้อผิดพลาดในการอัปเดตตะกร้าสินค้า",
     });
   }
 };
@@ -155,13 +178,15 @@ export const clearCart = async (req, res) => {
 
     res.json({
       success: true,
-      message: 'ล้างตะกร้าสินค้าสำเร็จ'
+      message: "ล้างตะกร้าสินค้าสำเร็จ",
     });
   } catch (error) {
-    console.error('Clear Cart Error:', error);
+    console.error("Clear Cart Error:", error);
     res.status(500).json({
       success: false,
-      message: 'เกิดข้อผิดพลาดในการล้างตะกร้าสินค้า'
+      message: "เกิดข้อผิดพลาดในการล้างตะกร้าสินค้า",
     });
   }
 };
+
+

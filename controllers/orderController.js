@@ -1,5 +1,5 @@
-import Order from '../models/Order.js';
-import Product from '../models/Product.js';
+import Order from "../models/Order.js";
+import Product from "../models/Product.js";
 
 // @desc    Create new order
 // @route   POST /api/orders
@@ -11,29 +11,32 @@ export const createOrder = async (req, res) => {
     if (!items || items.length === 0) {
       return res.status(400).json({
         success: false,
-        message: 'ไม่มีสินค้าในตะกร้า'
+        message: "ไม่มีสินค้าในตะกร้า",
       });
     }
 
-    // ตรวจสอบและคำนวณราคา
+    // Fetch all products at once
+    const productIds = items.map((item) => item.productId);
+    const products = await Product.find({ _id: { $in: productIds } });
+    const productMap = new Map(products.map((p) => [p._id.toString(), p]));
+
     let total = 0;
     const orderItems = [];
 
     for (const item of items) {
-      const product = await Product.findById(item.productId);
+      const product = productMap.get(item.productId.toString());
 
       if (!product) {
         return res.status(404).json({
           success: false,
-          message: `ไม่พบสินค้า ID: ${item.productId}`
+          message: `ไม่พบสินค้า ID: ${item.productId}`,
         });
       }
 
-      // ตรวจสอบ stock
       if (product.stock < item.quantity) {
         return res.status(400).json({
           success: false,
-          message: `สินค้า ${product.name} มีไม่เพียงพอ (เหลือ ${product.stock} ชิ้น)`
+          message: `สินค้า ${product.name} มีไม่เพียงพอ (เหลือ ${product.stock} ชิ้น)`,
         });
       }
 
@@ -42,35 +45,39 @@ export const createOrder = async (req, res) => {
         name: product.name,
         quantity: item.quantity,
         price: product.price,
-        image: product.image
+        image: product.image,
       });
 
       total += product.price * item.quantity;
-
-      // ลด stock
-      product.stock -= item.quantity;
-      await product.save();
     }
 
-    // สร้าง order
+    // Reduce stock in batch
+    const bulkOps = orderItems.map((item) => ({
+      updateOne: {
+        filter: { _id: item.productId },
+        update: { $inc: { stock: -item.quantity } },
+      },
+    }));
+    await Product.bulkWrite(bulkOps);
+
     const order = await Order.create({
       userId: req.user._id,
       items: orderItems,
       total,
       shippingAddress,
-      status: 'pending'
+      status: "pending",
     });
 
     res.status(201).json({
       success: true,
-      message: 'สั่งซื้อสำเร็จ',
-      data: order
+      message: "สั่งซื้อสำเร็จ",
+      data: order,
     });
   } catch (error) {
-    console.error('Create Order Error:', error);
+    console.error("Create Order Error:", error);
     res.status(500).json({
       success: false,
-      message: error.message || 'เกิดข้อผิดพลาดในการสั่งซื้อ'
+      message: error.message || "เกิดข้อผิดพลาดในการสั่งซื้อ",
     });
   }
 };
@@ -80,18 +87,17 @@ export const createOrder = async (req, res) => {
 // @access  Private
 export const getMyOrders = async (req, res) => {
   try {
-    const orders = await Order.find({ userId: req.user._id })
-      .sort({ createdAt: -1 });
+    const orders = await Order.find({ userId: req.user._id }).sort({ createdAt: -1 });
 
     res.json({
       success: true,
-      data: orders
+      data: orders,
     });
   } catch (error) {
-    console.error('Get My Orders Error:', error);
+    console.error("Get My Orders Error:", error);
     res.status(500).json({
       success: false,
-      message: 'เกิดข้อผิดพลาดในการดึงข้อมูลคำสั่งซื้อ'
+      message: "เกิดข้อผิดพลาดในการดึงข้อมูลคำสั่งซื้อ",
     });
   }
 };
@@ -101,38 +107,31 @@ export const getMyOrders = async (req, res) => {
 // @access  Private
 export const getOrderById = async (req, res) => {
   try {
-    const order = await Order.findById(req.params.id).populate(
-      'userId',
-      'name email'
-    );
+    const order = await Order.findById(req.params.id).populate("userId", "name email");
 
     if (!order) {
       return res.status(404).json({
         success: false,
-        message: 'ไม่พบคำสั่งซื้อ'
+        message: "ไม่พบคำสั่งซื้อ",
       });
     }
 
-    // ตรวจสอบว่าเป็น order ของ user นี้หรือเป็น admin
-    if (
-      order.userId._id.toString() !== req.user._id.toString() &&
-      req.user.role !== 'admin'
-    ) {
+    if (order.userId._id.toString() !== req.user._id.toString() && req.user.role !== "admin") {
       return res.status(403).json({
         success: false,
-        message: 'ไม่มีสิทธิ์เข้าถึงคำสั่งซื้อนี้'
+        message: "ไม่มีสิทธิ์เข้าถึงคำสั่งซื้อนี้",
       });
     }
 
     res.json({
       success: true,
-      data: order
+      data: order,
     });
   } catch (error) {
-    console.error('Get Order By ID Error:', error);
+    console.error("Get Order By ID Error:", error);
     res.status(500).json({
       success: false,
-      message: 'เกิดข้อผิดพลาดในการดึงข้อมูลคำสั่งซื้อ'
+      message: "เกิดข้อผิดพลาดในการดึงข้อมูลคำสั่งซื้อ",
     });
   }
 };
@@ -144,13 +143,32 @@ export const updateOrderStatus = async (req, res) => {
   try {
     const { status } = req.body;
 
+    const validStatuses = ["pending", "paid", "delivered", "cancelled"];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: `สถานะไม่ถูกต้อง (ต้องเป็น: ${validStatuses.join(", ")})`,
+      });
+    }
+
     const order = await Order.findById(req.params.id);
 
     if (!order) {
       return res.status(404).json({
         success: false,
-        message: 'ไม่พบคำสั่งซื้อ'
+        message: "ไม่พบคำสั่งซื้อ",
       });
+    }
+
+    // If cancelling, restore stock
+    if (status === "cancelled" && order.status !== "cancelled") {
+      const bulkOps = order.items.map((item) => ({
+        updateOne: {
+          filter: { _id: item.productId },
+          update: { $inc: { stock: item.quantity } },
+        },
+      }));
+      await Product.bulkWrite(bulkOps);
     }
 
     order.status = status;
@@ -158,14 +176,14 @@ export const updateOrderStatus = async (req, res) => {
 
     res.json({
       success: true,
-      message: 'อัปเดตสถานะสำเร็จ',
-      data: updatedOrder
+      message: "อัปเดตสถานะสำเร็จ",
+      data: updatedOrder,
     });
   } catch (error) {
-    console.error('Update Order Status Error:', error);
+    console.error("Update Order Status Error:", error);
     res.status(500).json({
       success: false,
-      message: 'เกิดข้อผิดพลาดในการอัปเดตสถานะ'
+      message: "เกิดข้อผิดพลาดในการอัปเดตสถานะ",
     });
   }
 };
@@ -175,52 +193,61 @@ export const updateOrderStatus = async (req, res) => {
 // @access  Private/Admin
 export const getAllOrders = async (req, res) => {
   try {
-    const orders = await Order.find()
-      .populate('userId', 'name email')
-      .sort({ createdAt: -1 });
+    const orders = await Order.find().populate("userId", "name email").sort({ createdAt: -1 });
 
     res.json({
       success: true,
       data: orders,
-      count: orders.length
+      count: orders.length,
     });
   } catch (error) {
-    console.error('Get All Orders Error:', error);
+    console.error("Get All Orders Error:", error);
     res.status(500).json({
       success: false,
-      message: 'เกิดข้อผิดพลาดในการดึงข้อมูลคำสั่งซื้อ'
+      message: "เกิดข้อผิดพลาดในการดึงข้อมูลคำสั่งซื้อ",
     });
   }
 };
 
-
-
+// @desc    Delete order (Admin only)
+// @route   DELETE /api/orders/:id
+// @access  Private/Admin
 export const deleteOrder = async (req, res) => {
   try {
-    const order = await Order.findById(req.params.id).populate(
-      'userId',
-      'name email'
-    );
-
+    const order = await Order.findById(req.params.id);
 
     if (!order) {
       return res.status(404).json({
         success: false,
-        message: 'ไม่พบออเดอร์'
+        message: "ไม่พบออเดอร์",
       });
     }
 
-    await order.findByIdAndDelete(req.params.id);
+    // Restore stock if order is not cancelled
+    if (order.status !== "cancelled") {
+      const bulkOps = order.items.map((item) => ({
+        updateOne: {
+          filter: { _id: item.productId },
+          update: { $inc: { stock: item.quantity } },
+        },
+      }));
+      await Product.bulkWrite(bulkOps);
+    }
+
+    await Order.findByIdAndDelete(req.params.id);
 
     res.json({
       success: true,
-      message: 'ลบออเดอร์สำเร็จ'
+      message: "ลบออเดอร์สำเร็จ",
     });
   } catch (error) {
-    console.error('Delete Product Error:', error);
+    console.error("Delete Order Error:", error);
     res.status(500).json({
       success: false,
-      message: 'เกิดข้อผิดพลาดในการลบสินค้า'
+      message: "เกิดข้อผิดพลาดในการลบออเดอร์",
     });
   }
 };
+
+
+
