@@ -1,29 +1,29 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
 const orderItemSchema = new mongoose.Schema(
   {
     productId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'Product',
-      required: true
+      ref: "Product",
+      required: true,
     },
     name: {
       type: String,
-      required: true
+      required: true,
     },
     quantity: {
       type: Number,
       required: true,
-      min: [1, 'จำนวนต้องมากกว่า 0']
+      min: [1, "จำนวนต้องมากกว่า 0"],
     },
     price: {
       type: Number,
       required: true,
-      min: [0, 'ราคาต้องไม่ติดลบ']
+      min: [0, "ราคาต้องไม่ติดลบ"],
     },
     image: {
-      type: String
-    }
+      type: String,
+    },
   },
   { _id: false }
 );
@@ -32,8 +32,8 @@ const orderSchema = new mongoose.Schema(
   {
     userId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-      required: true
+      ref: "User",
+      required: true,
     },
     items: {
       type: [orderItemSchema],
@@ -42,34 +42,41 @@ const orderSchema = new mongoose.Schema(
         validator: function (v) {
           return v.length > 0;
         },
-        message: 'ต้องมีสินค้าอย่างน้อย 1 รายการ'
-      }
+        message: "ต้องมีสินค้าอย่างน้อย 1 รายการ",
+      },
     },
     total: {
       type: Number,
       required: true,
-      min: [0, 'ยอดรวมต้องไม่ติดลบ']
+      min: [0, "ยอดรวมต้องไม่ติดลบ"],
     },
     status: {
       type: String,
       enum: {
-        values: ['pending', 'paid', 'delivered'],
-        message: 'สถานะไม่ถูกต้อง'
+        values: ["pending", "paid", "delivered", "cancelled"],
+        message: "สถานะไม่ถูกต้อง",
       },
-      default: 'pending'
+      default: "pending",
     },
     shippingAddress: {
       address: { type: String },
       city: { type: String },
       postalCode: { type: String },
-      phone: { type: String }
-    }
+      phone: { type: String },
+    },
   },
   {
-    timestamps: true
+    timestamps: true,
   }
 );
 
-const Order = mongoose.model('Order', orderSchema);
+orderSchema.index({ userId: 1 });
+orderSchema.index({ createdAt: -1 });
+
+const Order = mongoose.model("Order", orderSchema);
 
 export default Order;
+
+
+
+
